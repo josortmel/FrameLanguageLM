@@ -50,7 +50,7 @@ total_ml = con.execute("SELECT count(*) FROM ml").fetchone()[0]
 # ratings de ML mapeados a tconst (links.imdbId es el tconst sin prefijo 'tt')
 con.execute("""
     CREATE TABLE ml_tconst AS
-    SELECT 'tt' || lpad(CAST(l.imdbId AS VARCHAR), 7, '0') AS tconst,
+    SELECT printf('tt%07d', CAST(l.imdbId AS BIGINT)) AS tconst,
            count(*) AS n_ratings
     FROM ml m JOIN links l USING (movieId)
     GROUP BY 1

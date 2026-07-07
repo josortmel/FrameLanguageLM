@@ -52,7 +52,8 @@ def load_sequences(
     """Devuelve (lista de secuencias por usuario en orden temporal, n_items)."""
     mapping = build_or_load_vocab(parquet, vocab_path)
     con = duckdb.connect()
-    con.execute(f"CREATE TEMP TABLE vocab AS {_vocab_query(str(parquet))}")
+    con.execute("CREATE TEMP TABLE vocab(tconst VARCHAR, idx BIGINT)")
+    con.executemany("INSERT INTO vocab VALUES (?, ?)", mapping.items())
     user_filter = ""
     if max_users:
         user_filter = f"""

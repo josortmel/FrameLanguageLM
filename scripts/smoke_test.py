@@ -1,15 +1,17 @@
 """Smoke test de framelm: formas, padding, loss decreciente y checkpoint."""
 
+import json
 import sys
 import tempfile
 from pathlib import Path
 
+import duckdb
 import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.data import PAD, TrainDataset, eval_batches, left_pad
+from framelm.data import PAD, TrainDataset, eval_batches, left_pad, load_sequences
 from framelm.eval import evaluate
 from framelm.loss import gbce_loss
 from framelm.model import SASRec
@@ -93,9 +95,36 @@ def test_eval_batches() -> None:
     print("ok: eval_batches")
 
 
+def test_load_sequences_uses_persisted_vocab() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        parquet = tmp_path / "seq.parquet"
+        vocab = tmp_path / "vocab_map.json"
+        duckdb.sql(f"""
+            COPY (
+                SELECT * FROM (VALUES
+                    (1, 'tt_a', 1),
+                    (1, 'tt_b', 2),
+                    (1, 'tt_a', 3)
+                ) AS t(userId, tconst, timestamp)
+            ) TO '{parquet.as_posix()}' (FORMAT PARQUET)
+        """)
+        vocab.write_text(
+            json.dumps({"n_items": 2, "tconst_to_idx": {"tt_a": 2, "tt_b": 1}}),
+            encoding="utf-8",
+        )
+
+        seqs, n_items = load_sequences(parquet, vocab)
+        assert n_items == 2
+        assert len(seqs) == 1
+        assert seqs[0].tolist() == [2, 1, 2]
+    print("ok: vocab persistido")
+
+
 if __name__ == "__main__":
     test_shapes_and_padding()
     test_eval_batches()
+    test_load_sequences_uses_persisted_vocab()
     test_loss_decreases()
     test_checkpoint_roundtrip()
     print("\nsmoke test COMPLETO")

@@ -2,6 +2,14 @@
 
 > Compañero de `SPEC.md`. Cada fase tiene entregable y **verificación concreta** — no se pasa a la siguiente sin cumplirla. Las fases 0-4 son el core; 5-7 son producto. Stack: Python 3.12 + uv, PyTorch (entrenamiento), ONNX Runtime (inferencia), SQLite + Parquet (datos).
 
+## Estado actual — 2026-07-07
+
+- **Fase 0 completada**: corpus crudo descargado y verificado.
+- **Fase 1 completada**: catalogo de 100k items, secuencias MovieLens filtradas y spot-check manual.
+- **Fase 2 en curso**: baseline SASRec solo-ID implementado y verificado en local; falta entrenamiento completo en GPU.
+- **RunPod preparado pero pausado**: se creo un pod RTX 4090 (`23tzovukqp7om0`, `framelm-baseline`) y Pepe lo paro antes de subir/lanzar el entrenamiento. No hay checkpoint nuevo de GPU.
+- Ver detalles operativos en `STATUS.md`.
+
 ## Fase 0 — Corpus crudo (½ día)
 
 1. Descargar MovieLens 32M, los 7 TSV de IMDb, y los daily ID exports de TMDB.
@@ -93,8 +101,8 @@ F0 ─ F1 ─┬─ F2 ─ F3 ─ F4 ─┬─ F6 ─ F7
 
 F5 (importadores) solo depende de F1 (catálogo) — puede hacerse en paralelo con F2-F4. Total estimado del core (F0-F6): **3-4 semanas de trabajo efectivo** a ritmo de proyecto personal.
 
-## Decisiones abiertas para Pepe antes de F0
+## Decisiones
 
-1. **Corte del vocabulario**: ¿50k o 100k? Propuesta: decidir con datos en F1 (distribución de numVotes y cobertura de un export real).
-2. **GPU de entrenamiento**: ¿hay GPU local utilizable o alquilamos spot (<5€/experimento)?
-3. **Nombre**: ¿FilmRAG se queda aunque no sea RAG?
+1. **Corte del vocabulario**: decidido el 2026-07-07. Se usa 100k: ~79k peliculas + ~21k series, reteniendo ~98.8% de ratings MovieLens.
+2. **GPU de entrenamiento**: usar RunPod para baseline y fase 3. La primera prueba de pod quedo pausada antes de entrenar.
+3. **Nombre**: FrameLanguageLM es el nombre de proyecto; paquete/CLI actual: `framelm`.
