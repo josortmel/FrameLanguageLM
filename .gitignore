@@ -1,0 +1,7 @@
+.env
+data/
+*.ckpt
+*.onnx
+__pycache__/
+.venv/
+*.egg-info/

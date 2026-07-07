@@ -1,0 +1,15 @@
+[project]
+name = "framelm"
+version = "0.1.0"
+description = "A language model whose vocabulary is films — sequential recommender over 100k titles"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5.4",
+    "httpx>=0.28.1",
+]
+
+[dependency-groups]
+dev = []
+
+[tool.uv]
+package = false
