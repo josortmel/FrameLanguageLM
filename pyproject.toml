@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.5.4",
     "httpx>=0.28.1",
+    "numpy>=2.5.1",
+    "torch>=2.12.1",
 ]
 
 [dependency-groups]
