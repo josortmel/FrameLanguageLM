@@ -16,11 +16,13 @@ if torch.cuda.is_available():
 PY
 
 python -m pip install --upgrade pip
-python -m pip install duckdb numpy httpx
+python -m pip install duckdb numpy httpx tqdm tensorboard
 
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 log="logs/train_${stamp}.log"
 echo "logging to ${log}"
+
+tensorboard --logdir logs/tb --host 0.0.0.0 --port 6006 &
 
 python -u -m framelm.train \
   --data data/sequences.parquet \
