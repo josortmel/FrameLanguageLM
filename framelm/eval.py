@@ -14,19 +14,30 @@ def evaluate(
     device: str,
     batch_size: int = 256,
     max_len: int = 200,
+    ratings: list[np.ndarray] | None = None,
 ) -> dict[str, float]:
     model.eval()
-    inputs, targets, seen = eval_batches(seqs, mode, max_len)
+    if ratings is not None:
+        inputs, targets, seen, in_ratings = eval_batches(seqs, mode, max_len, ratings)
+    else:
+        inputs, targets, seen = eval_batches(seqs, mode, max_len)
+        in_ratings = None
     n_users = len(targets)
     ndcg10 = recall10 = recall50 = 0.0
+    matrix = model.item_matrix()  # una vez por evaluacion
 
     for start in range(0, n_users, batch_size):
         end = min(start + batch_size, n_users)
         x = torch.from_numpy(inputs[start:end]).to(device)
         tgt = torch.from_numpy(targets[start:end]).to(device)
+        r = (
+            torch.from_numpy(in_ratings[start:end]).to(device)
+            if in_ratings is not None
+            else None
+        )
 
-        h_last = model(x)[:, -1]                      # (B, d)
-        scores = model.score_all(h_last)              # (B, n+1)
+        h_last = model(x, ratings=r, matrix=matrix)[:, -1]   # (B, d)
+        scores = model.score_all(h_last, matrix=matrix)      # (B, n+1)
         scores[:, 0] = float("-inf")
 
         rows = np.concatenate(

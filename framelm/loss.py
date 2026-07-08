@@ -23,6 +23,7 @@ def gbce_loss(
     n_items: int,
     k: int = 256,
     t: float = 0.75,
+    target_mask: torch.Tensor | None = None,  # (B, L) bool, targets que puntuan
 ) -> torch.Tensor:
     B, L, d = h.shape
     alpha = k / (n_items - 1)
@@ -40,4 +41,8 @@ def gbce_loss(
     per_pos = (pos_term + neg_term) / (1 + k)
 
     mask = targets != 0
+    if target_mask is not None:
+        mask = mask & target_mask
+    if not mask.any():  # batch sin targets validos (filtro de rating)
+        return h.sum() * 0.0
     return per_pos[mask].mean()
