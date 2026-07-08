@@ -34,7 +34,8 @@ Esta familia de modelos existe y está validada académicamente (SASRec, BERT4Re
 | D6 | Catálogo | **Top 50k-100k títulos por `numVotes` de IMDb** (películas + series) | Todo IMDb (~10M títulos): ruido masivo, embeddings inservibles para la cola larga. |
 | D7 | Series | **Solo por metadata (cold-start composicional) en v1** — sin señal colaborativa | No existe ningún dataset público bueno de historiales de series con timestamps (ver §6, Riesgo R1). Netflix Prize: viejo, sin metadata. Scraping de Trakt/Letterboxd: zona gris de ToS. |
 | D8 | Vecinos / ANN | **Brute-force numpy** (matmul contra la matriz de embeddings) | hnswlib/Faiss: innecesarios — 100k×256 int8 = 25MB, una query son ~5-15ms con recall 1.0. Menos dependencias, cero tuning. Reconsiderar solo si >1M vectores. |
-| D9 | Runtime de inferencia | **ONNX Runtime, cuantización int8 dinámica**, fallback fp32 para CPUs sin VNNI | PyTorch en producción: artefacto mucho mayor. |
+| D9 | Runtime de inferencia | **ONNX Runtime fp32** (revisado 2026-07-08: la cuantización int8 dinámica degrada NDCG@10 un ~70% en este modelo — diminuto y dominado por embeddings; la ganancia de tamaño era 2,5MB de 126MB) | int8 dinámica: rota en la práctica pese a la literatura. PyTorch en producción: artefacto mucho mayor. |
+| D12 | Cold-start (añadida 2026-07-08) | **ID-dropout p=0.2 en entrenamiento + servido DUAL**: cine → checkpoint `feat` (calidad intacta), series/fríos → checkpoint `iddrop`; scores nunca mezclados entre poblaciones. Ranking frío: coseno + suelo de ficha + prior popularidad + writers-as-creators | Composición post-hoc sin ID-dropout: probada y FALLA (overlap 0.076, NDCG frío 0.0000 — vectores solo-torre fuera de distribución). Un solo modelo iddrop para todo: -5,5% en cine sin necesidad. |
 | D10 | Base de código | **Reescritura limpia propia (~500 líneas) usando `asash/gSASRec-pytorch` como referencia**; RecBole solo para validar métricas contra baselines | RecBole como base de producto: framework pesado, obliga a subclasear. |
 | D11 | Distribución | **Fase 1: CLI instalable con `uv`. Fase 2: Tauri v2 + sidecar PyInstaller. Opción demo: onnxruntime-web en navegador** | Solo PyInstaller --onefile: problemas conocidos con DLLs nativas. Electron: pesado frente a Tauri. |
 
@@ -137,7 +138,7 @@ Cada posición: `E(item) + E(rating_bucket) + E(posición)`. Los rating-buckets 
 
 | ID | Riesgo | Impacto | Mitigación |
 |----|--------|---------|------------|
-| R1 | **Series sin señal colaborativa** — no existe dataset público de historiales de TV | Recomendación de series notablemente peor que la de cine en v1 | Cold-start composicional + honestidad en la UI ("recomendación por afinidad de ficha"). Futuro: corpus propio vía usuarios de Trakt que consientan, o scrape Kaggle de Letterboxd (solo experimento personal, no redistribuible) |
+| R1 | **Series sin señal colaborativa** — no existe dataset público de historiales de TV | Recomendación de series peor que la de cine en v1 | **Parcialmente mitigado (2026-07-08)** con D12: ítems fríos a 63,7% de la calidad caliente (420× popularidad); rankings de series validados cualitativamente por Pepe; vecinos de series individuales siguen flojos (no exponer en producto). Solución definitiva: corpus propio vía usuarios que consientan |
 | R2 | MovieLens acaba en oct-2023 → películas 2024-2026 sin señal colaborativa | Ítems recientes solo cold-start | Mismo mecanismo que R1; refresco periódico si aparece ML-nuevo |
 | R3 | Licencias no comerciales de todo el corpus | Bloquea comercialización | Asumido para v1 (ver §5) |
 | R4 | Presupuesto: 20-40% de cobertura real en TMDB | Feature débil | Bucket "desconocido"; nunca campo obligatorio en búsqueda |

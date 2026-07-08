@@ -1,4 +1,6 @@
-# Resultados — sesión de entrenamiento 2026-07-08
+# Resultados — sesiones de entrenamiento 2026-07-08
+
+> Actualización (tarde): quinto run `feat_iddrop` (ID-dropout 0.2): TEST ndcg@10 0.1110 / recall@10 0.2066 / recall@50 0.4511, mejor época 39, ~66 min. Peaje caliente -5,5% vs feat; a cambio, validación cold-start: overlap vecinos 0.076→0.697, NDCG ítems descabezados 0.0000→0.0846 (63,7% del caliente, 420× popularidad). Sirve el path frío del montaje dual (ver STATUS.md y SPEC D12). Coste GPU total del proyecto: ~1,25$.
 
 Baseline + ablation de features/rating sobre SASRec, en RunPod (RTX 3090, 0,22 $/h).
 

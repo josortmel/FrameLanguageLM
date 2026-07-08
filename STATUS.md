@@ -1,88 +1,41 @@
 # FrameLanguageLM - Estado actual
 
-Fecha: 2026-07-07
+Fecha: 2026-07-08 (cierre de sesión)
 
 ## Resumen
 
-FrameLanguageLM ya tiene completadas las fases de corpus/catalogo y un baseline SASRec solo-ID funcional en local. El siguiente hito es entrenar ese baseline completo en GPU para obtener una metrica fiable antes de pasar a embeddings composicionales y rating-buckets.
+Fases 0-5 completas + cold-start resuelto vía ID-dropout + servido dual en producción local. El modelo funciona con los datos reales de Pepe (validación cualitativa: recomienda cosas que ya vio y le gustaron sin haberlas visto en su perfil). Pendiente: Pepe está completando su perfil de FilmAffinity para purificar los huecos; después fase 6 (CLI producto) y la capa web.
 
-## Datos y artefactos locales
+## Arquitectura de producción (dual)
 
-- Corpus crudo descargado en `data/raw/`:
-  - MovieLens 32M.
-  - IMDb TSVs.
-  - TMDB daily exports.
-- Catalogo ensamblado:
-  - `data/catalog.sqlite`: 100.000 items.
-  - `data/interim/vocab.parquet`: vocabulario top-100k por `numVotes`.
-  - `data/sequences.parquet`: 31.605.848 interacciones de 200.947 usuarios.
-  - `data/vocab_map.json`: 54.053 items con señal colaborativa real de MovieLens, con indices 1..n y 0 reservado a `<pad>`.
-- Checkpoint local existente:
-  - `data/checkpoints/sasrec_baseline.pt`.
-  - Es una prueba temprana, no el resultado final de fase 2.
+| Población | Checkpoint | Matriz | Uso |
+|---|---|---|---|
+| Cine + series con señal (54.053) | `sasrec_feat.pt` (TEST ndcg@10 0.1174) | `item_embeddings.npy` | `gaps_movies`, worth/neighbors warm |
+| Catálogo completo incl. 46k fríos | `sasrec_feat_iddrop.pt` (TEST 0.1110; frío 0.0846 = 63,7% del caliente, 420× popularidad) | `item_embeddings_full.npy` | `gaps_series`, `gaps_docs`, cold |
 
-## Codigo implementado
+Scores NUNCA se mezclan entre poblaciones. Ranking frío: coseno + suelo de ficha (director o ≥2 cast conocidos) + prior popularidad (α=0.5) + writers-as-creators para series (F4, 19,1% cobertura).
 
-- `framelm/data.py`: carga secuencias, split temporal leave-one-out, padding y datasets.
-- `framelm/model.py`: SASRec causal con padding seguro para evitar NaNs en atencion.
-- `framelm/loss.py`: gBCE con negativos uniformes.
-- `framelm/eval.py`: evaluacion full-ranking sin sampling de candidatos.
-- `framelm/train.py`: CLI de entrenamiento con early stopping y checkpoint.
-- `scripts/smoke_test.py`: smoke test de padding, eval batches, loss decreciente, checkpoint y contrato de vocabulario.
-- `scripts/runpod_train_baseline.sh`: lanzador de entrenamiento para RunPod.
+## Lecciones clave de la sesión (2026-07-08)
 
-## Cambios recientes
+1. **Composición post-hoc SIN entrenamiento falla** (overlap 0.076, NDCG frío 0.0000): E_ID domina la geometría; vectores solo-torre quedan fuera de distribución. Fix: **ID-dropout p=0.2** (Bernoulli sobre vocabulario, misma matriz para input y scoring) — un solo reentrenamiento (~66 min, 0,30$).
+2. **Cuantización int8 dinámica de ORT rompe este modelo** (-70% NDCG): modelo diminuto dominado por embeddings. Producción = fp32 (126MB, 5,5ms de latencia — sobra).
+3. **Rutas de checkpoint fijas causaron 2 artefactos stale** en un día. Todo script acepta ya `FRAMELM_CKPT`. Verificar procedencia de artefactos antes de validar.
+4. Netflix colapsa 5.603 reproducciones → 401 títulos; FA export oficial RGPD existe (HTML). Matching global 97,0%.
 
-- `load_sequences()` ahora usa `data/vocab_map.json` como fuente de verdad para indices. Antes lo cargaba, pero reconstruia una tabla temporal desde `sequences.parquet`, lo que podia desalinear checkpoints si el vocabulario persistido cambiaba.
-- `scripts/vocab_analysis.py` usa `printf('tt%07d', ...)` en lugar de `lpad(...)` para mapear IMDb IDs. `lpad` truncaba IDs recientes de mas de 7 digitos.
-- `scripts/smoke_test.py` cubre explicitamente que `load_sequences()` respeta el vocabulario persistido.
+## Artefactos y datos
 
-## Verificacion local
+- `data/checkpoints/`: 4 checkpoints (baseline×2, feat, feat_iddrop) + `sasrec_feat_rating.pt` (descartado, -0,8% vs feat)
+- `data/artifacts/`: ONNX fp32 warm + full (verificados contra FRAMELM_CKPT correcto), matrices, `full_aux.npz` (flags F2/F3)
+- `data/user/pepe_sequence.parquet`: 705 eventos (456 warm + 241 cold-mapeables), `import_report.json`
+- `logs/runpod/`: logs + TensorBoard de los 5 entrenamientos
+- `docs/`: SPEC, PLAN, VISION (extraída con vision-extraction), RESULTS, CURSO, TENSORBOARD, HANDOFF
 
-Comandos ejecutados:
+## Coste GPU acumulado del proyecto
 
-```bash
-uv run python scripts/smoke_test.py
-uv run python scripts/vocab_analysis.py
-```
+~1,25$ (5 entrenamientos, RTX 3090 0,22$/h). Cero pods vivos.
 
-Resultado:
+## Siguiente paso
 
-- `smoke_test.py` pasa completo.
-- `vocab_analysis.py` pasa y reporta 98.8% de ratings retenidos para el corte de 100k.
-
-## RunPod
-
-Se configuro `runpodctl` localmente y se creo un pod de prueba:
-
-- Pod: `23tzovukqp7om0`
-- Nombre: `framelm-baseline`
-- GPU: RTX 4090
-- Coste reportado: 0.69 USD/h
-- Auto-stop solicitado: 6 horas
-
-El pod fue detenido por Pepe antes de completar la subida del paquete y antes de lanzar entrenamiento. No hay nuevo checkpoint de GPU ni logs de entrenamiento de esa ejecucion.
-
-Para reanudar:
-
-1. Crear pod GPU con `runpodctl`.
-2. Subir paquete minimo con codigo, `data/sequences.parquet` y `data/vocab_map.json`.
-3. Ejecutar:
-
-```bash
-cd /workspace/FrameLanguageLM
-bash scripts/runpod_train_baseline.sh
-```
-
-El script escribe logs en `logs/train_<timestamp>.log` y checkpoints en `data/checkpoints/`.
-
-## Siguiente paso recomendado
-
-Entrenar el baseline SASRec completo en GPU y guardar:
-
-- Log de entrenamiento.
-- Mejor checkpoint.
-- Metricas valid/test full-ranking.
-- Tiempo por epoca.
-
-No pasar a fase 3 hasta tener ese baseline, porque sera el control para saber si las features composicionales y rating-buckets aportan o rompen algo.
+1. Pepe amplía votos en FilmAffinity → re-import (`scripts/import_user.py` + `scripts/dual_report.py`) → re-juicio de huecos
+2. Fase 6: CLI `framelm` empaquetado (`gaps`/`worth`/`similar`/`why`)
+3. Capa producto (ver docs/VISION.md): web sin instalación, HuggingFace, GitHub público, caso de estudio
