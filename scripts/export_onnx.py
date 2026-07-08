@@ -13,6 +13,7 @@ composicional incluido) -> model_full_fp32.onnx.
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -27,7 +28,9 @@ from framelm.model import SASRec
 from framelm.train import load_feature_tensors
 
 ROOT = Path(__file__).resolve().parent.parent
-CKPT = ROOT / "data/checkpoints/sasrec_feat.pt"
+CKPT = Path(
+    os.environ.get("FRAMELM_CKPT", ROOT / "data/checkpoints/sasrec_feat.pt")
+)
 OUT = ROOT / "data/artifacts"
 
 
@@ -124,7 +127,7 @@ def main() -> None:
     if stale.exists():
         stale.unlink()
 
-    (OUT / "meta.json").write_text(
+    (OUT / ("meta_full.json" if args.full else "meta.json")).write_text(
         json.dumps(
             {
                 "checkpoint": CKPT.name,

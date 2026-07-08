@@ -11,6 +11,7 @@ Uso: uv run python scripts/build_full_matrix.py
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -32,7 +33,9 @@ from framelm.model import SASRec
 from framelm.train import load_feature_tensors
 
 ROOT = Path(__file__).resolve().parent.parent
-CKPT = ROOT / "data/checkpoints/sasrec_feat.pt"
+CKPT = Path(
+    os.environ.get("FRAMELM_CKPT", ROOT / "data/checkpoints/sasrec_feat.pt")
+)
 
 
 def load_production_model() -> SASRec:
@@ -103,6 +106,34 @@ def compose_tower_term(model: SASRec, idx: dict[str, torch.Tensor]) -> torch.Ten
     return model.tower.proj(torch.cat(parts, dim=-1))
 
 
+def series_writers(series_tconsts: set[str]) -> dict[str, list[str]]:
+    """F4: primeros 3 writers (nombres) por serie, cacheado en interim."""
+    cache = ROOT / "data/interim/series_writers.parquet"
+    con = duckdb.connect()
+    if not cache.exists():
+        raw = ROOT / "data" / "raw"
+        con.execute(f"""
+            COPY (
+                WITH crew AS (
+                    SELECT tconst, string_split(writers, ',') AS ws
+                    FROM read_csv_auto('{raw / "title.crew.tsv.gz"}',
+                                       delim='\t', quote='', nullstr='\\N')
+                    WHERE writers IS NOT NULL
+                ), x AS (
+                    SELECT tconst, unnest(ws[1:3]) AS nconst FROM crew
+                )
+                SELECT x.tconst, list(n.primaryName) AS writer_names
+                FROM x JOIN read_csv_auto('{raw / "name.basics.tsv.gz"}',
+                                          delim='\t', quote='', nullstr='\\N') n
+                  ON x.nconst = n.nconst
+                GROUP BY x.tconst
+            ) TO '{cache}' (FORMAT PARQUET)
+        """)
+    rows = con.execute(f"SELECT tconst, writer_names FROM '{cache}'").fetchall()
+    con.close()
+    return {t: ws for t, ws in rows if t in series_tconsts}
+
+
 def main() -> None:
     mapping = json.loads(
         (ROOT / "data/vocab_map.json").read_text(encoding="utf-8")
@@ -118,9 +149,28 @@ def main() -> None:
            original_language, start_year, budget
            FROM items ORDER BY num_votes DESC, tconst"""
     ).fetchall()
+    cat_info = {
+        t: (tt, g or "", int(nv or 0))
+        for t, tt, g, nv in con.execute(
+            "SELECT tconst, title_type, genres, num_votes FROM items"
+        ).fetchall()
+    }
     con.close()
 
     new_rows = [r for r in rows if r[0] not in mapping]
+
+    # F4: para series frias, slots de director <- writers/creadores si alguno
+    # cae en el vocab de directores entrenado (19% de las series; medido)
+    series_t = {r[0] for r in new_rows if cat_info[r[0]][0] != "movie"}
+    writers = series_writers(series_t)
+    dir_vocab = vocabs["director"]
+    swapped = 0
+    for i, r in enumerate(new_rows):
+        ws = writers.get(r[0])
+        if ws and any(w in dir_vocab for w in ws):
+            known = [w for w in ws if w in dir_vocab]
+            new_rows[i] = (r[0], "|".join(known[:3]), *r[2:])
+            swapped += 1
     model = load_production_model()
 
     with torch.no_grad():
@@ -142,6 +192,38 @@ def main() -> None:
         encoding="utf-8",
     )
 
+    # aux por fila (alineado a la matriz completa): flags para filtrado y
+    # prior de popularidad en el ranking frio. Fila 0 = <pad>.
+    n_total_rows = full.shape[0]
+    trained_feats = np.load(ROOT / "data/features.npz")
+    director_known = np.zeros(n_total_rows, dtype=bool)
+    cast_known_n = np.zeros(n_total_rows, dtype=np.int8)
+    num_votes = np.zeros(n_total_rows, dtype=np.int64)
+    is_movie = np.zeros(n_total_rows, dtype=bool)
+    is_series = np.zeros(n_total_rows, dtype=bool)
+    is_doc = np.zeros(n_total_rows, dtype=bool)
+    is_cold = np.zeros(n_total_rows, dtype=bool)
+    is_cold[n_train + 1:] = True
+
+    director_known[: n_train + 1] = (trained_feats["director"] > 0).any(1)
+    cast_known_n[: n_train + 1] = (trained_feats["cast"] > 0).sum(1)
+    director_known[n_train + 1:] = (idx["director"] > 0).any(1).numpy()
+    cast_known_n[n_train + 1:] = (idx["cast"] > 0).sum(1).numpy()
+
+    for t, row in full_map.items():
+        tt, genres, nv = cat_info[t]
+        num_votes[row] = nv
+        is_movie[row] = tt == "movie"
+        is_series[row] = tt != "movie"
+        is_doc[row] = "Documentary" in genres
+
+    np.savez_compressed(
+        out_dir / "full_aux.npz",
+        director_known=director_known, cast_known_n=cast_known_n,
+        num_votes=num_votes, is_movie=is_movie, is_series=is_series,
+        is_doc=is_doc, is_cold=is_cold,
+    )
+
     # cobertura de features de los nuevos: cuantos tienen ALGO de señal
     known_dir = (idx["director"] > 0).any(1).float().mean().item()
     known_cast = (idx["cast"] > 0).any(1).float().mean().item()
@@ -151,9 +233,11 @@ def main() -> None:
         | (idx["genre"] > 0).any(1)
     ).float().mean().item()
     meta = {
+        "checkpoint": CKPT.name,
         "n_train": n_train,
         "n_cold": len(new_rows),
         "n_total": len(full_map),
+        "series_con_writers_activados": swapped,
         "cold_con_director_conocido": round(known_dir, 4),
         "cold_con_cast_conocido": round(known_cast, 4),
         "cold_con_alguna_feature": round(known_any, 4),
