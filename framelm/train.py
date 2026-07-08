@@ -52,6 +52,7 @@ def main() -> None:
     p.add_argument("--use-features", action="store_true")
     p.add_argument("--use-rating", action="store_true")
     p.add_argument("--min-target-rating", type=float, default=3.5)
+    p.add_argument("--id-dropout", type=float, default=0.0)
     args = p.parse_args()
 
     if args.use_rating:
@@ -64,7 +65,7 @@ def main() -> None:
 
     variant = "sasrec" + ("_feat" if args.use_features else "") + (
         "_rating" if args.use_rating else ""
-    )
+    ) + ("_iddrop" if args.id_dropout > 0 else "")
     if variant == "sasrec":
         variant = "sasrec_baseline"
     print(
@@ -87,6 +88,7 @@ def main() -> None:
         features=feats,
         feature_vocab_sizes=sizes,
         use_rating=args.use_rating,
+        id_dropout=args.id_dropout,
     ).to(args.device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
 

@@ -80,6 +80,7 @@ class SASRec(nn.Module):
         feature_vocab_sizes: dict[str, int] | None = None,
         use_rating: bool = False,
         use_features: bool = False,  # informativo en config; requiere `features`
+        id_dropout: float = 0.0,
     ):
         super().__init__()
         if use_features and features is None:
@@ -87,10 +88,12 @@ class SASRec(nn.Module):
                 "use_features=True requiere pasar `features` y "
                 "`feature_vocab_sizes` (no van en el checkpoint config)"
             )
+        self.id_dropout = id_dropout
         self.config = dict(
             n_items=n_items, d=d, n_layers=n_layers, n_heads=n_heads,
             max_len=max_len, dropout=dropout,
             use_features=features is not None, use_rating=use_rating,
+            id_dropout=id_dropout,
         )
         self.item_emb = nn.Embedding(n_items + 1, d, padding_idx=0)
         self.pos_emb = nn.Embedding(max_len, d)
@@ -114,10 +117,23 @@ class SASRec(nn.Module):
                 self.rate_emb.weight[0].zero_()
 
     def item_matrix(self) -> torch.Tensor:
-        """Matriz de items (n+1, d), compuesta si hay features."""
+        """Matriz de items (n+1, d), compuesta si hay features.
+
+        Con id_dropout>0 y en training, una fraccion aleatoria del VOCABULARIO
+        pierde su E_ID en este forward: esos items quedan solo-torre, en la
+        misma matriz que se usa para input y para scoring — el modelo aprende
+        a operar con items frios (cold-start) dentro de distribucion.
+        """
         if self.tower is None:
             return self.item_emb.weight
-        m = self.item_emb.weight + self.tower()
+        id_part = self.item_emb.weight
+        if self.training and self.id_dropout > 0:
+            keep = (
+                torch.rand(id_part.size(0), 1, device=id_part.device)
+                >= self.id_dropout
+            ).to(id_part.dtype)
+            id_part = id_part * keep
+        m = id_part + self.tower()
         return m * (torch.arange(m.size(0), device=m.device) > 0).unsqueeze(-1)
 
     def forward(

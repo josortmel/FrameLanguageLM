@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd /workspace/FrameLanguageLM
+
+mkdir -p data/checkpoints logs
+
+python - <<'PY'
+import torch
+
+print("python/torch check")
+print("torch:", torch.__version__)
+print("cuda:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("gpu:", torch.cuda.get_device_name(0))
+PY
+
+python -m pip install --upgrade pip
+python -m pip install duckdb numpy httpx tqdm tensorboard
+
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+log="logs/train_iddrop_${stamp}.log"
+echo "logging to ${log}"
+
+tensorboard --logdir logs/tb --host 0.0.0.0 --port 6006 &
+
+# checkpoint resultante: data/checkpoints/sasrec_feat_iddrop.pt
+python -u -m framelm.train \
+  --data data/sequences.parquet \
+  --vocab data/vocab_map.json \
+  --out data/checkpoints \
+  --use-features \
+  --id-dropout "${ID_DROPOUT:-0.2}" \
+  --logdir logs/tb/feat_iddrop \
+  --epochs "${EPOCHS:-200}" \
+  --batch-size "${BATCH_SIZE:-256}" \
+  --lr "${LR:-0.001}" \
+  --device "${DEVICE:-cuda}" \
+  --negatives "${NEGATIVES:-256}" \
+  --gbce-t "${GBCE_T:-0.75}" \
+  --patience "${PATIENCE:-5}" \
+  2>&1 | tee "${log}"
