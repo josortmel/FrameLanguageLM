@@ -1,6 +1,8 @@
 # FrameLanguageLM - Estado actual
 
-Fecha: 2026-07-09
+Fecha: 2026-07-09 · **V1 FINALIZADO — declarado completo por Pepe**
+
+**Publicado**: [GitHub](https://github.com/josortmel/FrameLanguageLM) · [HuggingFace](https://huggingface.co/josortmel/FrameLanguageLM) · [Demo viva](https://josortmel.github.io/FrameLanguageLM/) · Post LinkedIn publicado.
 
 ## Resumen
 
