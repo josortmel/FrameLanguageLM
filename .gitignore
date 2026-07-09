@@ -6,3 +6,4 @@ logs/
 __pycache__/
 .venv/
 *.egg-info/
+hf_repo/
