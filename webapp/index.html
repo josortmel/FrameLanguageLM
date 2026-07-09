@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrameLanguageLM — Discover your film blind spots</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Screen 1: Welcome -->
+  <div id="screen-welcome" class="screen">
+    <h1 class="hero-title">FrameLanguageLM</h1>
+    <p class="hero-subtitle">
+      A language model trained on 32 million viewing sequences.
+      Upload your FilmAffinity profile and discover the films you'd love but haven't seen yet.
+    </p>
+    <button id="btn-start" class="btn btn-accent">Get started</button>
+
+    <div class="how-it-works">
+      <h3>How it works</h3>
+      <ol class="steps">
+        <li>Request your data export from FilmAffinity (GDPR rights, takes 24-72h)</li>
+        <li>Upload the ZIP file here &mdash; everything runs in your browser</li>
+        <li>Get personalized gap recommendations based on your taste</li>
+      </ol>
+    </div>
+
+    <p class="privacy-note">
+      Privacy-first: your data never leaves your browser.<br>
+      No accounts. No tracking. No server costs.
+    </p>
+  </div>
+
+  <!-- Screen 2: Upload -->
+  <div id="screen-upload" class="screen">
+    <div id="dropzone" class="dropzone">
+      <div class="dropzone-icon">&#128206;</div>
+      <div class="dropzone-text">Drop your FilmAffinity export ZIP here</div>
+      <div class="dropzone-hint">or click to browse</div>
+    </div>
+    <input type="file" id="file-input" accept=".zip" hidden>
+
+    <div class="upload-help">
+      <h4>How to get your FilmAffinity export</h4>
+      <ol>
+        <li>Log in to <strong>filmaffinity.com</strong></li>
+        <li>Go to your account settings</li>
+        <li>Look for &ldquo;Export my data&rdquo; or &ldquo;GDPR data request&rdquo;</li>
+        <li>Request your data &mdash; you'll receive a ZIP by email (24-72h)</li>
+        <li>Upload that ZIP here</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Screen 3: Progress -->
+  <div id="screen-progress" class="screen">
+    <div class="progress-container">
+      <p id="progress-text">Initializing...</p>
+      <div class="progress-bar">
+        <div id="progress-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Results -->
+  <div id="screen-results" class="screen">
+    <div class="results-layout">
+      <aside class="sidebar" id="filter-panel"></aside>
+      <main class="main-content">
+        <div class="results-header">
+          <h2>Your film blind spots</h2>
+          <div class="view-toggle">
+            <button id="view-list" class="view-btn" title="List view">&#9776;</button>
+            <button id="view-grid" class="view-btn active" title="Poster grid">&#9638;</button>
+          </div>
+        </div>
+        <div id="match-stats"></div>
+        <div id="results-list"></div>
+      </main>
+    </div>
+    <footer class="tmdb-attribution">
+      <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" class="tmdb-logo">
+      <span>This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
+    </footer>
+  </div>
+
+  <!-- Libraries (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <script src="https://sql.js.org/dist/sql-wasm.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,10 +1,12 @@
 # FrameLanguageLM - Estado actual
 
-Fecha: 2026-07-08 (cierre de sesión)
+Fecha: 2026-07-09
 
 ## Resumen
 
-Fases 0-5 completas + cold-start resuelto vía ID-dropout + servido dual en producción local. El modelo funciona con los datos reales de Pepe (validación cualitativa: recomienda cosas que ya vio y le gustaron sin haberlas visto en su perfil). Pendiente: Pepe está completando su perfil de FilmAffinity para purificar los huecos; después fase 6 (CLI producto) y la capa web.
+**MODELO VALIDADO POR PEPE (2026-07-09) — fase de modelo cerrada.** Con el perfil FA ampliado (re-import: 1.254 eventos, matching 96,5%, 834 en vocab warm), el reporte dual pasó el juicio cualitativo: cine leyó el perfil con precisión (animación japonesa de autor, saga Ip Man, thriller coreano) y las series frías salieron coherentes (Fallout, Silo, Boba Fett, Solo Leveling). Fases 0-5 completas + cold-start resuelto vía ID-dropout + servido dual. Pendiente: fase 6 (CLI producto) y la capa web/producto (ver docs/VISION.md).
+
+Fix 2026-07-09 en `scripts/dual_report.py`: etiquetas de bloque dinámicas (estaban hardcodeadas con los conteos del perfil viejo) y `gaps_docs` ahora recibe la secuencia completa (antes solo warm → los fríos ya vistos no se excluían del bloque docs).
 
 ## Arquitectura de producción (dual)
 
@@ -36,6 +38,6 @@ Scores NUNCA se mezclan entre poblaciones. Ranking frío: coseno + suelo de fich
 
 ## Siguiente paso
 
-1. Pepe amplía votos en FilmAffinity → re-import (`scripts/import_user.py` + `scripts/dual_report.py`) → re-juicio de huecos
-2. Fase 6: CLI `framelm` empaquetado (`gaps`/`worth`/`similar`/`why`)
-3. Capa producto (ver docs/VISION.md): web sin instalación, HuggingFace, GitHub público, caso de estudio
+1. ~~Re-import y re-juicio de huecos~~ → HECHO Y VALIDADO (2026-07-09)
+2. **Capa de producto EN MARCHA (2026-07-09)**: diseño delegado a sesión relay code-3 (borradores en docs/product/ cuando lleguen) — webapp client-side (onnxruntime-web), lectura de perfil FA público si su ToS lo permite (verificación previa obligatoria), filtros de búsqueda (década/país/director/género), empaquetado fácil de los scripts, HuggingFace (con análisis de licencias: MovieLens/IMDb/TMDB restrictivas), README público + post + portfolio.
+3. Nota naming: el nombre de paquete/CLI `framelm` fue un error (decisión de Pepe 2026-07-09: nombres completos, sin abreviaturas) — renombrado pendiente, el nombre del comando CLI se decidirá con la capa de producto.

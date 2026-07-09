@@ -7,3 +7,7 @@ __pycache__/
 .venv/
 *.egg-info/
 hf_repo/
+screenshots/
+*.pyc
+.playwright-mcp/
+uv.lock
