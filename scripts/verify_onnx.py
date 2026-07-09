@@ -20,11 +20,11 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.data import MAX_LEN, load_sequences
-from framelm.eval import evaluate
-from framelm.infer import FrameLM
-from framelm.model import SASRec
-from framelm.train import load_feature_tensors
+from frame_language_lm.data import MAX_LEN, load_sequences
+from frame_language_lm.eval import evaluate
+from frame_language_lm.infer import FrameLM
+from frame_language_lm.model import SASRec
+from frame_language_lm.train import load_feature_tensors
 
 ROOT = Path(__file__).resolve().parent.parent
 ART = ROOT / "data/artifacts"
@@ -38,7 +38,7 @@ def eval_onnx(path: Path, seqs, matrix: np.ndarray) -> float:
     sess = ort.InferenceSession(str(path), opts, providers=["CPUExecutionProvider"])
     ndcg = 0.0
     B = 256
-    from framelm.data import eval_batches
+    from frame_language_lm.data import eval_batches
 
     inputs, targets, seen = eval_batches(seqs, "valid", MAX_LEN)
     for start in range(0, len(targets), B):

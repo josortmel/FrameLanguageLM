@@ -8,7 +8,7 @@ import duckdb
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from framelm.infer import FrameLM  # noqa: E402
+from frame_language_lm.infer import FrameLM  # noqa: E402
 
 lm = FrameLM(ROOT / "data/artifacts", ROOT / "data/catalog.sqlite", ROOT / "data")
 rows = duckdb.sql(

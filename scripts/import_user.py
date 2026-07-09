@@ -17,8 +17,8 @@ import duckdb
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.importers import parse_filmaffinity, parse_netflix
-from framelm.importers.matching import Matcher
+from frame_language_lm.importers import parse_filmaffinity, parse_netflix
+from frame_language_lm.importers.matching import Matcher
 
 ROOT = Path(__file__).resolve().parent.parent
 

@@ -23,9 +23,9 @@ from torch import nn
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.data import MAX_LEN, vocab_md5
-from framelm.model import SASRec
-from framelm.train import load_feature_tensors
+from frame_language_lm.data import MAX_LEN, vocab_md5
+from frame_language_lm.model import SASRec
+from frame_language_lm.train import load_feature_tensors
 
 ROOT = Path(__file__).resolve().parent.parent
 CKPT = Path(

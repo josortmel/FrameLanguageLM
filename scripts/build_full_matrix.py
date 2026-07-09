@@ -21,7 +21,7 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.features import (
+from frame_language_lm.features import (
     N_CAST,
     N_DIRECTORS,
     N_GENRES,
@@ -29,8 +29,8 @@ from framelm.features import (
     budget_bucket,
     decade_bucket,
 )
-from framelm.model import SASRec
-from framelm.train import load_feature_tensors
+from frame_language_lm.model import SASRec
+from frame_language_lm.train import load_feature_tensors
 
 ROOT = Path(__file__).resolve().parent.parent
 CKPT = Path(

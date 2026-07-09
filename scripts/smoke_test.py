@@ -1,4 +1,4 @@
-"""Smoke test de framelm: formas, padding, loss decreciente y checkpoint."""
+"""Smoke test: formas, padding, loss decreciente y checkpoint."""
 
 import json
 import sys
@@ -11,10 +11,10 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.data import PAD, TrainDataset, eval_batches, left_pad, load_sequences
-from framelm.eval import evaluate
-from framelm.loss import gbce_loss
-from framelm.model import SASRec
+from frame_language_lm.data import PAD, TrainDataset, eval_batches, left_pad, load_sequences
+from frame_language_lm.eval import evaluate
+from frame_language_lm.loss import gbce_loss
+from frame_language_lm.model import SASRec
 
 MAX_LEN = 200
 

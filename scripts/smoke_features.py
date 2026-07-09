@@ -12,10 +12,10 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.data import rating_bucket  # noqa: E402
-from framelm.loss import gbce_loss  # noqa: E402
-from framelm.model import FEATURE_KEYS, SASRec  # noqa: E402
-from framelm.train import load_feature_tensors  # noqa: E402
+from frame_language_lm.data import rating_bucket  # noqa: E402
+from frame_language_lm.loss import gbce_loss  # noqa: E402
+from frame_language_lm.model import FEATURE_KEYS, SASRec  # noqa: E402
+from frame_language_lm.train import load_feature_tensors  # noqa: E402
 
 torch.manual_seed(7)
 

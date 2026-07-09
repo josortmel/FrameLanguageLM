@@ -8,8 +8,8 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.data import MAX_LEN, eval_batches, load_sequences
-from framelm.model import SASRec
+from frame_language_lm.data import MAX_LEN, eval_batches, load_sequences
+from frame_language_lm.model import SASRec
 
 seqs, n_items = load_sequences(
     Path("data/sequences.parquet"), Path("data/vocab_map.json"), max_users=2000

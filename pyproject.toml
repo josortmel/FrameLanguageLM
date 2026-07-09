@@ -1,19 +1,20 @@
 [project]
-name = "framelm"
-version = "0.1.0"
+name = "frame-language-lm"
+version = "1.0.0"
 description = "A language model whose vocabulary is films — sequential recommender over 100k titles"
 requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.5.4",
     "httpx>=0.28.1",
     "numpy>=2.5.1",
-    "tensorboard>=2.21.0",
-    "torch>=2.12.1",
-    "tqdm>=4.68.4",
+    "onnxruntime>=1.27.0",
+    "rapidfuzz>=3.14.5",
+    "rich>=13.0",
+    "huggingface-hub>=0.20",
 ]
 
-[dependency-groups]
-dev = []
+[project.scripts]
+frame-language-lm = "frame_language_lm.cli:main"
 
 [tool.uv]
-package = false
+package = true

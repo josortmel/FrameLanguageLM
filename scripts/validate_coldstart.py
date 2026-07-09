@@ -19,8 +19,8 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from framelm.data import eval_batches, load_sequences
-from framelm.infer import FrameLM
+from frame_language_lm.data import eval_batches, load_sequences
+from frame_language_lm.infer import FrameLM
 
 from build_full_matrix import load_production_model  # noqa: E402
 

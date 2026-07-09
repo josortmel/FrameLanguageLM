@@ -9,7 +9,7 @@ import duckdb
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from framelm.infer import FrameLM  # noqa: E402
+from frame_language_lm.infer import FrameLM  # noqa: E402
 
 
 def show(tag: str, items: list[dict]) -> None:
@@ -40,13 +40,13 @@ def main() -> None:
     show("MOVIES top-10", lm.gaps_movies(seq_warm, 10))
 
     print("\n================ SERIES (path iddrop calibrado) ================")
-    for label, seq in (("input=warm(456)", seq_warm), ("input=full(705)", seq_full)):
+    for label, seq in ((f"input=warm({len(seq_warm)})", seq_warm), (f"input=full({len(seq_full)})", seq_full)):
         s = lm.gaps_series(seq, 10)
         show(f"SERIES warm-block {label}", s["warm"])
         show(f"SERIES cold-block {label}", s["cold"])
 
     print("\n================ DOCUMENTALES ================")
-    d = lm.gaps_docs(seq_warm, 10)
+    d = lm.gaps_docs(seq_full, 10)
     show("DOCS warm-block", d["warm"])
     show("DOCS cold-block", d["cold"])
 
