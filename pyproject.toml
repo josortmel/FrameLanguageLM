@@ -16,5 +16,8 @@ dependencies = [
 [project.scripts]
 frame-language-lm = "frame_language_lm.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["frame_language_lm*"]
+
 [tool.uv]
 package = true
