@@ -11,10 +11,7 @@ import {
 } from './ui.js';
 
 const CONFIG = {
-  // Local development
-  ARTIFACTS_BASE: '/artifacts',
-  // Production (HuggingFace Hub) — uncomment when deployed:
-  // ARTIFACTS_BASE: 'https://huggingface.co/pepe/FrameLanguageLM/resolve/main',
+  ARTIFACTS_BASE: 'https://huggingface.co/josortmel/FrameLanguageLM/resolve/main',
 };
 
 let state = {

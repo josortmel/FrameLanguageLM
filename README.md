@@ -1,5 +1,7 @@
 # FrameLanguageLM
 
+**[Try the demo](https://josortmel.github.io/FrameLanguageLM/)** · [Model on HuggingFace](https://huggingface.co/josortmel/FrameLanguageLM)
+
 **A language model where tokens are movies and TV series.**
 
 Your viewing history is a sentence — a sequence of titles with statistical structure.
